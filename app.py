@@ -4,10 +4,7 @@ import pandas as pd
 st.set_page_config(page_title="Data Normalizer", page_icon="📊")
 
 st.title("📊 Financial Data Normalizer")
-st.write("""
-    Built for finance teams and clerks who need to keep stock and portfolio data up to date.
-    Simply upload any financial document — our AI extracts and standardizes the data for you instantly.
-""")
+st.write("Upload any financial document and get back clean, standardized data — instantly.")
 
 st.info("📂 Supports PDF, CSV, Excel and more — no manual formatting needed.")
 
