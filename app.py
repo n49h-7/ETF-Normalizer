@@ -9,6 +9,19 @@ GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=GOOGLE_API_KEY)
 gemini_model = genai.GenerativeModel('gemini-pro')
 
+def clean_dataframe(df):
+    # Drop completely empty rows
+    df = df.dropna(how='all')
+    # Drop footer/header text rows
+    df = df[~df.iloc[:, 0].astype(str).str.startswith('Total')]
+    df = df[~df.iloc[:, 0].astype(str).str.startswith('Fund')]
+    df = df[~df.iloc[:, 0].astype(str).str.startswith('Note')]
+    df = df[~df.iloc[:, 0].astype(str).str.startswith('Source')]
+    df = df[~df.iloc[:, 0].astype(str).str.startswith('nan')]
+    # Reset index
+    df = df.reset_index(drop=True)
+    return df
+
 def process_file(uploaded_file):
     file_content = uploaded_file.read()
     filename = uploaded_file.name
@@ -16,7 +29,12 @@ def process_file(uploaded_file):
 
     if file_extension == 'csv':
         try:
+            # First attempt — normal read
             df = pd.read_csv(io.StringIO(file_content.decode('utf-8')))
+            # If first row looks like metadata, skip it
+            if any(word in str(df.columns[0]) for word in ['Fund', 'Holdings', 'Date', 'As of', 'Report']):
+                df = pd.read_csv(io.StringIO(file_content.decode('utf-8')), skiprows=2)
+            df = clean_dataframe(df)
             return df
         except Exception as e:
             st.error(f"Error reading CSV: {e}")
@@ -30,19 +48,27 @@ def process_file(uploaded_file):
                 text_content += page.extract_text()
             gemini_prompt = (
                 "Extract structured data from the following document text. "
+                "Ignore any header metadata, footnotes, or footer text. "
+                "Focus only on the main data table. "
                 "Return the data in JSON format as an array of objects. "
                 "Document text:\n" + text_content[:30000]
             )
             response = gemini_model.generate_content(gemini_prompt)
             structured_data = json.loads(response.text)
-            return pd.DataFrame(structured_data)
+            df = pd.DataFrame(structured_data)
+            df = clean_dataframe(df)
+            return df
         except Exception as e:
             st.error(f"Error reading PDF: {e}")
             return pd.DataFrame()
 
     elif file_extension in ['xlsx', 'xls']:
         try:
+            # Try reading, skip metadata rows if needed
             df = pd.read_excel(io.BytesIO(file_content))
+            if any(word in str(df.columns[0]) for word in ['Fund', 'Holdings', 'Date', 'As of', 'Report']):
+                df = pd.read_excel(io.BytesIO(file_content), skiprows=2)
+            df = clean_dataframe(df)
             return df
         except Exception as e:
             st.error(f"Error reading Excel: {e}")
@@ -53,7 +79,7 @@ def process_file(uploaded_file):
         return pd.DataFrame()
 
 st.set_page_config(page_title="Financial Data Normalizer", page_icon="📊")
-st.title("📊 ETF Data Normalizer")
+st.title("📊 Financial Data Normalizer")
 st.write("Upload any financial document and get back clean, standardized data — instantly.")
 st.info("📂 Supports PDF, CSV, Excel and more — no manual formatting needed.")
 
