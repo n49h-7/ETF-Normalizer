@@ -10,15 +10,13 @@ genai.configure(api_key=GOOGLE_API_KEY)
 gemini_model = genai.GenerativeModel('gemini-pro')
 
 def clean_dataframe(df):
-    # Drop completely empty rows
+    df = df.astype(str)
     df = df.dropna(how='all')
-    # Drop footer/header text rows
-    df = df[~df.iloc[:, 0].astype(str).str.startswith('Total')]
-    df = df[~df.iloc[:, 0].astype(str).str.startswith('Fund')]
-    df = df[~df.iloc[:, 0].astype(str).str.startswith('Note')]
-    df = df[~df.iloc[:, 0].astype(str).str.startswith('Source')]
-    df = df[~df.iloc[:, 0].astype(str).str.startswith('nan')]
-    # Reset index
+    df = df[~df.iloc[:, 0].str.startswith('Total')]
+    df = df[~df.iloc[:, 0].str.startswith('Fund')]
+    df = df[~df.iloc[:, 0].str.startswith('Note')]
+    df = df[~df.iloc[:, 0].str.startswith('Source')]
+    df = df[~df.iloc[:, 0].str.startswith('nan')]
     df = df.reset_index(drop=True)
     return df
 
@@ -29,9 +27,7 @@ def process_file(uploaded_file):
 
     if file_extension == 'csv':
         try:
-            # First attempt — normal read
             df = pd.read_csv(io.StringIO(file_content.decode('utf-8')))
-            # If first row looks like metadata, skip it
             if any(word in str(df.columns[0]) for word in ['Fund', 'Holdings', 'Date', 'As of', 'Report']):
                 df = pd.read_csv(io.StringIO(file_content.decode('utf-8')), skiprows=2)
             df = clean_dataframe(df)
@@ -64,7 +60,6 @@ def process_file(uploaded_file):
 
     elif file_extension in ['xlsx', 'xls']:
         try:
-            # Try reading, skip metadata rows if needed
             df = pd.read_excel(io.BytesIO(file_content))
             if any(word in str(df.columns[0]) for word in ['Fund', 'Holdings', 'Date', 'As of', 'Report']):
                 df = pd.read_excel(io.BytesIO(file_content), skiprows=2)
@@ -83,7 +78,10 @@ st.title("📊 Financial Data Normalizer")
 st.write("Upload any financial document and get back clean, standardized data — instantly.")
 st.info("📂 Supports PDF, CSV, Excel and more — no manual formatting needed.")
 
-uploaded_file = st.file_uploader("Upload your financial document here", type=["pdf", "csv", "xlsx", "xls"])
+uploaded_file = st.file_uploader(
+    "Upload your financial document here",
+    type=["pdf", "csv", "xlsx", "xls"]
+)
 
 if uploaded_file is not None:
     try:
