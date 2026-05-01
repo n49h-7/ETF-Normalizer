@@ -52,14 +52,24 @@ def process_file(uploaded_file):
             for page in reader.pages:
                 text_content += page.extract_text()
             gemini_prompt = (
-                "Extract structured data from the following document text. "
-                "Ignore any header metadata, footnotes, or footer text. "
-                "Focus only on the main data table. "
-                "Return the data in JSON format as an array of objects. "
+                "Extract structured financial holdings data from the following document text. "
+                "Return ONLY a JSON array of objects with exactly these fields: "
+                "ETF_CODE (the fund or ETF ticker symbol), "
+                "Market (the asset class or market type e.g. AUD_BOND, EQUITY), "
+                "stock_code (the individual stock or bond ticker), "
+                "stock_name (the full name of the holding), "
+                "weight (the percentage weight as a number). "
+                "Ignore headers, footers, and metadata. "
+                "Return ONLY the JSON array, no explanation or extra text. "
                 "Document text:\n" + text_content[:30000]
             )
             response = gemini_model.generate_content(gemini_prompt)
-            structured_data = json.loads(response.text)
+            response_text = response.text.strip()
+            if response_text.startswith("```"):
+                response_text = response_text.split("```")[1]
+                if response_text.startswith("json"):
+                    response_text = response_text[4:]
+            structured_data = json.loads(response_text)
             df = pd.DataFrame(structured_data)
             df = clean_dataframe(df)
             return df
@@ -90,8 +100,8 @@ def process_file(uploaded_file):
         st.error("Unsupported file type.")
         return pd.DataFrame()
 
-st.set_page_config(page_title="Financial Data Normalizer", page_icon="📊")
-st.title("📊 Financial Data Normalizer")
+st.set_page_config(page_title="ETF Normaliser", page_icon="📊")
+st.title("📊 ETF Normaliser")
 st.write("Upload any financial document and get back clean, standardized data — instantly.")
 st.info("📂 Supports PDF, CSV, Excel and more — no manual formatting needed.")
 
