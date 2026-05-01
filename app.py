@@ -53,7 +53,7 @@ def process_file(uploaded_file):
         return pd.DataFrame()
 
 st.set_page_config(page_title="Financial Data Normalizer", page_icon="📊")
-st.title("📊 Financial Data Normalizer")
+st.title("📊 ETF Data Normalizer")
 st.write("Upload any financial document and get back clean, standardized data — instantly.")
 st.info("📂 Supports PDF, CSV, Excel and more — no manual formatting needed.")
 
