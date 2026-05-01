@@ -2,11 +2,9 @@ import streamlit as st
 import pandas as pd
 import io
 import json
-import os
 import google.generativeai as genai
 from PyPDF2 import PdfReader
 
-# Setup Gemini
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=GOOGLE_API_KEY)
 gemini_model = genai.GenerativeModel('gemini-pro')
@@ -30,7 +28,6 @@ def process_file(uploaded_file):
             text_content = ""
             for page in reader.pages:
                 text_content += page.extract_text()
-
             gemini_prompt = (
                 "Extract structured data from the following document text. "
                 "Return the data in JSON format as an array of objects. "
@@ -55,7 +52,6 @@ def process_file(uploaded_file):
         st.error("Unsupported file type.")
         return pd.DataFrame()
 
-# Website UI
 st.set_page_config(page_title="Financial Data Normalizer", page_icon="📊")
 st.title("📊 Financial Data Normalizer")
 st.write("Upload any financial document and get back clean, standardized data — instantly.")
@@ -67,7 +63,6 @@ if uploaded_file is not None:
     try:
         with st.spinner("Processing your file..."):
             df = process_file(uploaded_file)
-
         if not df.empty:
             st.success("✅ Done! Here's your standardized data:")
             st.dataframe(df)
